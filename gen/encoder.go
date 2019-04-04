@@ -15,6 +15,10 @@ func (g *Generator) getEncoderName(t reflect.Type) string {
 	return g.functionName("encode", t)
 }
 
+var customEncoders = map[string]string{
+	"json.Number": "out.JsonNumber()",
+}
+
 var primitiveEncoders = map[reflect.Kind]string{
 	reflect.String:  "out.String(string(%v))",
 	reflect.Bool:    "out.Bool(bool(%v))",
@@ -123,7 +127,10 @@ func (g *Generator) genTypeEncoderNoCheck(t reflect.Type, in string, tags fieldT
 	ws := strings.Repeat("  ", indent)
 
 	// Check whether type is primitive, needs to be done after interface check.
-	if enc := primitiveStringEncoders[t.Kind()]; enc != "" && tags.asString {
+	if enc := customEncoders[t.String()]; enc != "" {
+		fmt.Fprintln(g.out, ws+enc+"\n", in)
+		return nil
+	} else if enc := primitiveStringEncoders[t.Kind()]; enc != "" && tags.asString {
 		fmt.Fprintf(g.out, ws+enc+"\n", in)
 		return nil
 	} else if enc := primitiveEncoders[t.Kind()]; enc != "" {
